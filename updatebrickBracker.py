@@ -282,4 +282,41 @@ class Game(tk.Frame):
             self.hud_score, text=f'Skor: {self.score}   Rekor: {self.high_score}')
         self.canvas.itemconfig(self.hud_level, text=f'Level {self.level}')
         self.canvas.itemconfig(self.hud_lives, text='♥ ' * self.lives)
+ # ---------- input ----------
+    def on_key_press(self, e):
+        k = e.keysym
+        self.keys.add(k)
+        if k == 'space':
+            self.action()
+        elif k in ('p', 'P'):
+            self.toggle_pause()
+        elif k in ('r', 'R'):
+            self.new_game()
+ 
+    def on_mouse(self, e):
+        if self.state in ('ready', 'playing'):
+            self.paddle.move_to(e.x)
+ 
+    def action(self):
+        if self.state == 'ready':
+            self.launch()
+        elif self.state == 'over':
+            self.new_game()
+ 
+    def launch(self):
+        ball = self.balls[0]
+        angle = math.radians(random.uniform(-25, 25))
+        speed = self.current_speed()
+        ball.vx = speed * math.sin(angle)
+        ball.vy = -speed * math.cos(angle)
+        self.state = 'playing'
+        self.clear_message()
+ 
+    def toggle_pause(self):
+        if self.state == 'playing':
+            self.state = 'paused'
+            self.show_message('Jeda', 'Tekan P untuk lanjut')
+        elif self.state == 'paused':
+            self.state = 'playing'
+            self.clear_message()
  
