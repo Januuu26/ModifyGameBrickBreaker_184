@@ -260,3 +260,26 @@ class Game(tk.Frame):
         ball = Ball(self.canvas, self.paddle.center_x,
                     PADDLE_Y - self.paddle.height / 2 - 8, self.current_speed())
         self.balls.append(ball)
+
+# ---------- UI helpers ----------
+    def show_message(self, title, sub=''):
+        self.clear_message()
+        self.msg_items.append(self.canvas.create_text(
+            WIDTH / 2, HEIGHT / 2 + 30, text=title, fill='white',
+            font=(FONT, 32, 'bold')))
+        if sub:
+            self.msg_items.append(self.canvas.create_text(
+                WIDTH / 2, HEIGHT / 2 + 75, text=sub, fill='#bbbbdd',
+                font=(FONT, 11)))
+ 
+    def clear_message(self):
+        for i in self.msg_items:
+            self.canvas.delete(i)
+        self.msg_items = []
+ 
+    def update_hud(self):
+        self.canvas.itemconfig(
+            self.hud_score, text=f'Skor: {self.score}   Rekor: {self.high_score}')
+        self.canvas.itemconfig(self.hud_level, text=f'Level {self.level}')
+        self.canvas.itemconfig(self.hud_lives, text='♥ ' * self.lives)
+ 
