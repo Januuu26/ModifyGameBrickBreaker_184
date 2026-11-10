@@ -319,4 +319,89 @@ class Game(tk.Frame):
         elif self.state == 'paused':
             self.state = 'playing'
             self.clear_message()
+ # ---------- main loop ----------
+    def loop(self):
+        if self.state != 'paused':
+            self.step()
+        self.after(FRAME_MS, self.loop)
+ 
+    def step(self):
+        if self.state in ('ready', 'playing'):
+            dx = 0
+            if self.keys & {'Left', 'a', 'A'}:
+                dx -= PADDLE_SPEED
+            if self.keys & {'Right', 'd', 'D'}:
+                dx += PADDLE_SPEED
+            if dx:
+                self.paddle.move_by(dx)
+ 
+        self.update_particles()
+ 
+        if self.state == 'ready':
+            if self.balls:
+                self.balls[0].place(self.paddle.center_x,
+                                    PADDLE_Y - self.paddle.height / 2 - 8)
+        elif self.state == 'playing':
+            self.update_effects()
+            self.update_balls()
+            self.update_powerups()
+ 
+    def update_balls(self):
+        for ball in self.balls[:]:
+            ball.update()
+            self.collide_paddle(ball)
+            if self.state == 'playing':
+                self.collide_bricks(ball)
+            if self.state != 'playing':
+                return
+            if ball.get_position()[1] > HEIGHT:
+                ball.delete()
+                self.balls.remove(ball)
+        if self.state == 'playing' and not self.balls:
+            self.lose_life()
+ 
+    def collide_paddle(self, ball):
+        px1, py1, px2, py2 = self.paddle.get_position()
+        cx, cy = ball.center()
+        r = ball.radius
+        if (ball.vy > 0 and cy + r >= py1 and cy <= py2
+                and px1 - r <= cx <= px2 + r):
+            offset = (cx - (px1 + px2) / 2) / ((px2 - px1) / 2)
+            offset = max(-1.0, min(1.0, offset))
+            angle = offset * math.radians(65)
+            speed = ball.speed()
+            ball.vx = speed * math.sin(angle)
+            ball.vy = -speed * math.cos(angle)
+            ball.move(0, py1 - (cy + r))
+ 
+    def collide_bricks(self, ball):
+        cx, cy = ball.center()
+        r = ball.radius
+        for brick in self.bricks:
+            x1, y1, x2, y2 = brick.get_position()
+            nx = max(x1, min(cx, x2))
+            ny = max(y1, min(cy, y2))
+            if (cx - nx) ** 2 + (cy - ny) ** 2 > r * r:
+                continue
+            overlap_x = min(cx + r - x1, x2 - (cx - r))
+            overlap_y = min(cy + r - y1, y2 - (cy - r))
+            if overlap_x < overlap_y:
+                ball.vx = -abs(ball.vx) if cx < (x1 + x2) / 2 else abs(ball.vx)
+            else:
+                ball.vy = -abs(ball.vy) if cy < (y1 + y2) / 2 else abs(ball.vy)
+            if brick.hit():
+                self.destroy_brick(brick, (x1 + x2) / 2, (y1 + y2) / 2)
+            break
+ 
+    def destroy_brick(self, brick, x, y):
+        self.bricks.remove(brick)
+        self.score += brick.points
+        self.high_score = max(self.high_score, self.score)
+        self.spawn_particles(x, y, brick.color)
+        if random.random() < 0.18:
+            kind = random.choice(['W', 'W', 'S', 'M', 'M', 'L'])
+            self.powerups.append(PowerUp(self.canvas, x, y, kind))
+        self.update_hud()
+        if not self.bricks:
+            self.level_clear()
  
