@@ -469,4 +469,42 @@ class Game(tk.Frame):
             if p[3] <= 0:
                 self.canvas.delete(item)
                 self.particles.remove(p)
+ # ---------- game flow ----------
+    def lose_life(self):
+        self.lives -= 1
+        for p in self.powerups:
+            p.delete()
+        self.powerups = []
+        self.effects = {}
+        self.paddle.set_width(Paddle.NORMAL_WIDTH)
+        self.update_hud()
+        if self.lives <= 0:
+            self.state = 'over'
+            self.show_message('Game Over',
+                              f'Skor akhir: {self.score}   |   Spasi / klik untuk main lagi')
+        else:
+            self.spawn_ball_on_paddle()
+            self.state = 'ready'
+            self.show_message('Coba lagi!', 'Spasi / klik untuk meluncurkan bola')
+ 
+    def level_clear(self):
+        self.state = 'cleared'
+        self.score += 100 * self.level
+        self.high_score = max(self.high_score, self.score)
+        self.update_hud()
+        self.show_message(f'Level {self.level} selesai!', 'Bonus +%d' % (100 * self.level))
+        self.pending = self.after(1800, self.next_level)
+ 
+    def next_level(self):
+        self.pending = None
+        self.level += 1
+        self.start_level()
+ 
+ 
+if __name__ == '__main__':
+    root = tk.Tk()
+    root.title('Breakout')
+    root.resizable(False, False)
+    Game(root)
+    root.mainloop()
  
