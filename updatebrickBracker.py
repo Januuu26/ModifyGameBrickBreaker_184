@@ -404,4 +404,69 @@ class Game(tk.Frame):
         self.update_hud()
         if not self.bricks:
             self.level_clear()
+ # ---------- power-ups & effects ----------
+    def update_powerups(self):
+        px1, py1, px2, py2 = self.paddle.get_position()
+        for p in self.powerups[:]:
+            p.move(0, 2.5)
+            x1, y1, x2, y2 = p.get_position()
+            if y1 > HEIGHT:
+                p.delete()
+                self.powerups.remove(p)
+            elif y2 >= py1 and y1 <= py2 and x2 >= px1 and x1 <= px2:
+                self.apply_powerup(p.kind)
+                p.delete()
+                self.powerups.remove(p)
+ 
+    def apply_powerup(self, kind):
+        self.score += 25
+        if kind == 'W':
+            self.effects['wide'] = 600
+            self.paddle.set_width(Paddle.WIDE_WIDTH)
+        elif kind == 'S':
+            self.effects['slow'] = 600
+            for b in self.balls:
+                b.set_speed(self.current_speed())
+        elif kind == 'M':
+            for b in self.balls[:2]:
+                for angle in (-0.4, 0.4):
+                    if len(self.balls) >= 6:
+                        break
+                    x, y = b.center()
+                    nb = Ball(self.canvas, x, y, b.speed(), b.vx, b.vy)
+                    nb.rotate(angle)
+                    self.balls.append(nb)
+        elif kind == 'L':
+            self.lives = min(self.lives + 1, 5)
+        self.high_score = max(self.high_score, self.score)
+        self.update_hud()
+ 
+    def update_effects(self):
+        for name in list(self.effects):
+            self.effects[name] -= 1
+            if self.effects[name] <= 0:
+                del self.effects[name]
+                if name == 'wide':
+                    self.paddle.set_width(Paddle.NORMAL_WIDTH)
+                elif name == 'slow':
+                    for b in self.balls:
+                        b.set_speed(self.current_speed())
+ 
+    # ---------- particles ----------
+    def spawn_particles(self, x, y, color):
+        for _ in range(8):
+            item = self.canvas.create_rectangle(x, y, x + 4, y + 4,
+                                                fill=color, outline='')
+            self.particles.append([item, random.uniform(-3, 3),
+                                   random.uniform(-4, 1), 28])
+ 
+    def update_particles(self):
+        for p in self.particles[:]:
+            item, vx, vy, life = p
+            self.canvas.move(item, vx, vy)
+            p[2] = vy + 0.2
+            p[3] = life - 1
+            if p[3] <= 0:
+                self.canvas.delete(item)
+                self.particles.remove(p)
  
