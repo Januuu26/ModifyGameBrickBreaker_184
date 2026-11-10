@@ -177,4 +177,86 @@ class Game(tk.Frame):
         self.new_game()
         self.loop()
  
-   
+   # ---------- setup ----------
+    def new_game(self):
+        if self.pending is not None:
+            self.after_cancel(self.pending)
+            self.pending = None
+        self.canvas.delete('all')
+        self.msg_items = []
+        self.draw_background()
+ 
+        self.score = 0
+        self.lives = 3
+        self.level = 1
+        self.balls = []
+        self.bricks = []
+        self.powerups = []
+        self.particles = []
+        self.effects = {}
+        self.state = 'ready'
+ 
+        self.paddle = Paddle(self.canvas, WIDTH / 2, PADDLE_Y)
+        self.hud_score = self.canvas.create_text(10, 14, anchor='w', fill='white',
+                                                 font=(FONT, 12, 'bold'))
+        self.hud_level = self.canvas.create_text(WIDTH / 2, 14, fill='white',
+                                                 font=(FONT, 12, 'bold'))
+        self.hud_lives = self.canvas.create_text(WIDTH - 10, 14, anchor='e',
+                                                 fill='#ff6b81',
+                                                 font=(FONT, 12, 'bold'))
+        self.start_level()
+ 
+    def draw_background(self):
+        rnd = random.Random(7)
+        for _ in range(60):
+            x, y = rnd.randint(0, WIDTH), rnd.randint(0, HEIGHT)
+            c = rnd.choice(['#2b2b55', '#3a3a70', '#4a4a88'])
+            self.canvas.create_oval(x, y, x + 2, y + 2, fill=c, outline='')
+ 
+    def base_speed(self):
+        return min(5.0 + 0.5 * (self.level - 1), 9.0)
+ 
+    def current_speed(self):
+        return self.base_speed() * (0.7 if 'slow' in self.effects else 1.0)
+ 
+    def start_level(self):
+        for b in self.balls:
+            b.delete()
+        for p in self.powerups:
+            p.delete()
+        self.balls, self.powerups = [], []
+        self.effects = {}
+        self.paddle.set_width(Paddle.NORMAL_WIDTH)
+        self.build_bricks()
+        self.spawn_ball_on_paddle()
+        self.state = 'ready'
+        self.show_message(f'Level {self.level}',
+                          'Spasi / klik = luncurkan   |   ← → / mouse = gerak   |   P = jeda   |   R = ulang')
+        self.update_hud()
+ 
+    def build_bricks(self):
+        cols = 8
+        rows = min(4 + self.level, 8)
+        pattern = (self.level - 1) % 4
+        for r in range(rows):
+            if pattern == 3 and r % 2 == 1:           # garis-garis
+                continue
+            for c in range(cols):
+                if pattern == 1 and (r + c) % 2:      # papan catur
+                    continue
+                if pattern == 2 and abs(c - 3.5) > 1.5 + r * 0.5:   # segitiga
+                    continue
+                if self.level >= 3 and r == 0:
+                    hits = 3
+                elif r < 2:
+                    hits = 2
+                else:
+                    hits = 1
+                x = 20 + c * 75 + 37.5
+                y = 60 + r * 24
+                self.bricks.append(Brick(self.canvas, x, y, hits))
+ 
+    def spawn_ball_on_paddle(self):
+        ball = Ball(self.canvas, self.paddle.center_x,
+                    PADDLE_Y - self.paddle.height / 2 - 8, self.current_speed())
+        self.balls.append(ball)
